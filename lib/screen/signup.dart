@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'dart:async';
 
 import '../utils/session_manager.dart';
-import 'login.dart';
 import 'home.dart';
+import 'login.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -38,7 +38,7 @@ class _SignupPageState extends State<SignupPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://13.127.232.90:8084/auth/signup'),
+        Uri.parse('http://13.127.232.90:8084/user/signup'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -55,9 +55,6 @@ class _SignupPageState extends State<SignupPage> {
         _isLoading = false;
       });
 
-      print('Signup Response status: ${response.statusCode}');
-      print('Signup Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'OK') {
@@ -72,14 +69,14 @@ class _SignupPageState extends State<SignupPage> {
       setState(() {
         _isLoading = false;
       });
-      _showErrorDialog('Error: $e');
+      _showErrorDialog('An error occurred. Please try again.');
     }
   }
 
   Future<void> _autoLoginAfterSignup() async {
     try {
       final response = await http.post(
-        Uri.parse('http://13.127.232.90:8084/auth/login'),
+        Uri.parse('http://13.127.232.90:8084/user/login'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -93,67 +90,82 @@ class _SignupPageState extends State<SignupPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'OK' && data['data'] != null) {
-          SessionManager.saveUserData(data['data']);
-
-          _showSuccessDialog("Registration Successful! You are now logged in.");
+          await SessionManager.saveSession(data['data']);
 
           if (mounted) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-                  (route) => false,
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text("Success"),
+                content: const Text("Registration Successful! You are now logged in."),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomePage()),
+                            (route) => false,
+                      );
+                    },
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
             );
           }
         } else {
-          _showErrorDialog("Registration successful! Please login manually.");
-          if (mounted) {
-            Navigator.pop(context);
-          }
+          _handleManualLogin("Registration successful! Please login manually.");
         }
       } else {
-        _showErrorDialog("Registration successful! Please login manually.");
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        _handleManualLogin("Registration successful! Please login manually.");
       }
     } catch (e) {
-      _showErrorDialog("Registration successful! Please login manually.");
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      _handleManualLogin("Registration successful! Please login manually.");
+    }
+  }
+
+  void _handleManualLogin(String message) {
+    if(mounted) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text("Registration Successful"),
+          content: const Text("Please login manually to continue."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              },
+              child: const Text("Go to Login"),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Error"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Success"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Error"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -165,19 +177,16 @@ class _SignupPageState extends State<SignupPage> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Image.asset(
-                  "lib/image/logo3.png",
-                  height: 100,
-                ),
+              Image.asset(
+                "lib/image/logo3.png",
+                height: 100,
               ),
               const SizedBox(height: 20),
-
               const Center(
                 child: Text(
-                  "Register",
+                  "Create Account",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -185,67 +194,53 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
               const SizedBox(height: 30),
-
-              const Text("Name",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
+                  labelText: "Name",
                   hintText: "Enter your name",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              const Text("Email address",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
+                  labelText: "Email address",
                   hintText: "Enter your email",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              const Text("Phone Number",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
+                  labelText: "Phone Number",
                   hintText: "Enter phone number",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              const Text("Password",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
+                  labelText: "Password",
                   hintText: "Enter password",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () {
                       setState(() {
@@ -256,17 +251,15 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
               const SizedBox(height: 30),
-
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
-                width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: _signup,
@@ -281,7 +274,6 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
               const SizedBox(height: 20),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -29,15 +29,15 @@ class _AccountPageState extends State<AccountPage> {
   void _checkLoginStatus() {
     bool loggedIn = SessionManager.isLoggedIn();
     if (loggedIn) {
-      _userData = SessionManager.getUserData();
+      _userData = SessionManager.getUserData() ?? {};
     }
     setState(() {
       _isLoggedIn = loggedIn;
     });
   }
 
-  void _logout() {
-    SessionManager.logout();
+  void _logout() async {
+    await SessionManager.logout();
     setState(() {
       _isLoggedIn = false;
       _userData = {};
@@ -72,7 +72,7 @@ class _AccountPageState extends State<AccountPage> {
         title: const Text("My Account"),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // ADDED: To remove back button on root screen
+        automaticallyImplyLeading: false,
       ),
       body: _isLoggedIn ? _buildLoggedInUI() : _buildLoggedOutUI(),
       bottomNavigationBar: CustomBottomNavigationBar(
@@ -87,7 +87,7 @@ class _AccountPageState extends State<AccountPage> {
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch, // To stretch buttons
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Image.asset(
             "lib/image/logo3.png",
@@ -118,7 +118,7 @@ class _AccountPageState extends State<AccountPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.purple,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // Slightly more rounded
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
               onPressed: _navigateToLogin,
@@ -201,17 +201,14 @@ class _AccountPageState extends State<AccountPage> {
                     ],
                   ),
                 ),
-                // ADDED: Edit profile icon
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.grey),
-                  onPressed: () {
-                    // TODO: Navigate to Edit Profile page
-                  },
+                  onPressed: () {},
                 ),
               ],
             ),
           ),
-          const Divider(height: 1), // ADDED: Visual separator
+          const Divider(height: 1),
           const SizedBox(height: 10),
           _buildAccountOption(
             icon: Icons.shopping_bag_outlined,
@@ -241,7 +238,6 @@ class _AccountPageState extends State<AccountPage> {
             icon: Icons.security_outlined,
             title: "Privacy & Security",
             subtitle: "Manage your account security",
-            // CHANGED: Added navigation
             onTap: () {
               Navigator.push(
                 context,
@@ -253,7 +249,6 @@ class _AccountPageState extends State<AccountPage> {
             icon: Icons.help_outline,
             title: "Help & Support",
             subtitle: "Get help with your account",
-            // CHANGED: Added navigation
             onTap: () {
               Navigator.push(
                 context,
@@ -297,7 +292,6 @@ class _AccountPageState extends State<AccountPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    // REMOVED Card for a flatter design, looks cleaner in a list
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
       leading: Icon(icon, color: Colors.purple),

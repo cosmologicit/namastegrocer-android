@@ -1,28 +1,40 @@
-class SessionManager {
-  static Map<String, dynamic> _userData = {};
-  static String _token = '';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'cart_manager.dart';
+import 'favorites_manager.dart';
 
-  static void saveUserData(Map<String, dynamic> userData) {
-    _userData = userData;
-    _token = userData['token'] ?? '';
-    print('User data saved: ${_userData['name']}');
+class SessionManager {
+  static SharedPreferences? _prefs;
+
+  static Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
   }
 
-  static Map<String, dynamic> getUserData() {
-    return _userData;
+  static Future<void> saveSession(Map<String, dynamic> responseData) async {
+    String userDataString = json.encode(responseData);
+    await _prefs?.setString('userData', userDataString);
+  }
+
+  static String? getToken() {
+    String? userDataString = _prefs?.getString('userData');
+    if (userDataString == null) return null;
+    Map<String, dynamic> userData = json.decode(userDataString);
+    return userData['token'];
+  }
+
+  static Map<String, dynamic>? getUserData() {
+    String? userDataString = _prefs?.getString('userData');
+    if (userDataString == null) return null;
+    return json.decode(userDataString);
   }
 
   static bool isLoggedIn() {
-    return _token.isNotEmpty;
+    return _prefs?.getString('userData') != null;
   }
 
-  static void logout() {
-    _userData = {};
-    _token = '';
-    print('User logged out');
-  }
-
-  static String getToken() {
-    return _token;
+  static Future<void> logout() async {
+    await _prefs?.clear();
+    CartManager().clearLocalData();
+    FavoritesManager().clearLocalData();
   }
 }

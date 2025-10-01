@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:sample/screen/splash.dart';
+import 'package:sample/utils/cart_manager.dart';
+import 'package:sample/utils/favorites_manager.dart';
+import 'package:sample/utils/session_manager.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SessionManager.init();
+  await FavoritesManager.init();
+  await CartManager.init();
   runApp(const MyApp());
 }
 

@@ -43,55 +43,40 @@ class _LoginPageState extends State<LoginPage> {
         }),
       ).timeout(const Duration(seconds: 30));
 
-      setState(() {
-        _isLoading = false;
-      });
+      final data = json.decode(response.body);
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      if (response.statusCode == 200 && data['status'] == 'OK' && data['data'] != null) {
+        await SessionManager.saveSession(data['data']);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['status'] == 'OK' && data['data'] != null) {
-          SessionManager.saveUserData(data['data']);
-          _showSuccessDialog("Login Successful!");
-
-          if (mounted) {
+        if (mounted) {
+          _showSuccessDialog("Login Successful!", () {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomePage()),
                   (route) => false,
             );
-          }
-        } else {
-          _showErrorDialog(data['message'] ?? 'Login failed. Please try again.');
+          });
         }
-      } else if (response.statusCode == 401) {
-        _showErrorDialog("Invalid email or password");
-      } else if (response.statusCode == 500) {
-        _showErrorDialog("Server error. Please try again later.");
       } else {
-        _showErrorDialog('Login failed. Status code: ${response.statusCode}');
+        _showErrorDialog(data['message'] ?? 'Login failed. Please try again.');
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      print('Error during login: $e');
-
-      if (e is http.ClientException) {
-        _showErrorDialog("Network error. Please check your internet connection.");
-      } else if (e is TimeoutException) {
-        _showErrorDialog("Request timeout. Please try again.");
+      if (e is TimeoutException) {
+        _showErrorDialog("Request timeout. Please check your connection.");
       } else {
         _showErrorDialog("An error occurred. Please try again.");
+      }
+    } finally {
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -107,15 +92,20 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _showSuccessDialog(String message) {
+  void _showSuccessDialog(String message, VoidCallback onDismissed) {
+    if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
         title: const Text("Success"),
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              onDismissed();
+            },
             child: const Text("OK"),
           ),
         ],
@@ -132,63 +122,47 @@ class _LoginPageState extends State<LoginPage> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Image.asset(
                 "lib/image/logo3.png",
                 height: 100,
               ),
               const SizedBox(height: 20),
-
-              const Text(
-                "Login",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              const Center(
+                child: Text(
+                  "Login",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
-
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Email address",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ),
-              const SizedBox(height: 6),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
+                  labelText: "Email address",
                   hintText: "Enter your email",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Password",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ),
-              const SizedBox(height: 6),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
+                  labelText: "Password",
                   hintText: "Enter your password",
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () {
                       setState(() {
@@ -199,17 +173,15 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 30),
-
               _isLoading
-                  ? const CircularProgressIndicator()
+                  ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
-                width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: _login,
@@ -224,7 +196,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
