@@ -15,31 +15,31 @@ class CustomBottomNavigationBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onTap,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.purple,
+      unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
+          icon: Icon(Icons.store_outlined),
           label: 'Shop',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.explore),
+          icon: Icon(Icons.category_outlined),
           label: 'Category',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.shopping_cart),
+          icon: Icon(Icons.shopping_cart_outlined),
           label: 'Cart',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.favorite),
+          icon: Icon(Icons.favorite_border),
           label: 'Favourite',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person),
+          icon: Icon(Icons.person_outline),
           label: 'Account',
         ),
       ],
-      selectedItemColor: Colors.purple,
-      unselectedItemColor: Colors.grey,
-      type: BottomNavigationBarType.fixed,
     );
   }
 }

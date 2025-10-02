@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sample/screen/product_detail.dart';
+import '../utils/cart_manager.dart';
 import '../utils/favorites_manager.dart';
-import '../widgets/bottom_navigation_bar.dart';
-import '../utils/navigation_helper.dart';
+import '../widgets/product_card.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -11,35 +12,32 @@ class FavoritesPage extends StatefulWidget {
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
-  int _currentIndex = 3;
   final FavoritesManager _favoritesManager = FavoritesManager();
+  final CartManager _cartManager = CartManager();
 
   @override
   void initState() {
     super.initState();
-    _favoritesManager.addListener(_onFavoritesChanged);
+    _favoritesManager.addListener(_onStateChanged);
+    _cartManager.addListener(_onStateChanged);
   }
 
   @override
   void dispose() {
-    _favoritesManager.removeListener(_onFavoritesChanged);
+    _favoritesManager.removeListener(_onStateChanged);
+    _cartManager.removeListener(_onStateChanged);
     super.dispose();
   }
 
-  void _onFavoritesChanged() {
+  void _onStateChanged() {
     if (mounted) setState(() {});
-  }
-
-  void _handleNavigation(int index) {
-    setState(() => _currentIndex = index);
-    NavigationHelper.navigateToPage(context, index);
   }
 
   @override
   Widget build(BuildContext context) {
     final favoriteItems = _favoritesManager.favorites;
-
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text("My Favorites"),
         backgroundColor: Colors.purple,
@@ -48,67 +46,55 @@ class _FavoritesPageState extends State<FavoritesPage> {
       ),
       body: favoriteItems.isEmpty
           ? _buildEmptyFavorites()
-          : _buildFavoritesList(favoriteItems),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _handleNavigation,
-      ),
+          : _buildFavoritesGrid(favoriteItems),
     );
   }
 
   Widget _buildEmptyFavorites() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text("You have no favorites yet", style: TextStyle(fontSize: 18, color: Colors.grey)),
-          SizedBox(height: 8),
-          Text("Tap the heart on any product to save it here.", style: TextStyle(fontSize: 14, color: Colors.grey)),
+          Icon(Icons.favorite_outline, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 20),
+          const Text("No Favorites Yet", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black54)),
+          const SizedBox(height: 8),
+          Text(
+            "Tap the heart on any product to save it here.",
+            style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFavoritesList(List<dynamic> favoriteItems) {
-    return ListView.builder(
+  Widget _buildFavoritesGrid(List<dynamic> favoriteItems) {
+    return GridView.builder(
       padding: const EdgeInsets.all(8.0),
       itemCount: favoriteItems.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.75,
+      ),
       itemBuilder: (context, index) {
         final product = favoriteItems[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    (product['imageUrl'] != null && product['imageUrl'].isNotEmpty) ? product['imageUrl'][0] : '',
-                    width: 70, height: 70, fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag, size: 40, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(product['name'] ?? 'No Name', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('₹${product['price'] ?? 'N/A'}', style: TextStyle(fontSize: 14, color: Colors.green.shade700, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.favorite, color: Colors.red),
-                  onPressed: () => _favoritesManager.toggleFavorite(product),
-                )
-              ],
-            ),
-          ),
+        final int productId = product['id'];
+        return ProductCard(
+          product: product,
+          isFavorite: _favoritesManager.isFavorite(productId),
+          quantity: _cartManager.cart[productId]?['quantity'] ?? 0,
+          onToggleFavorite: () => _favoritesManager.toggleFavorite(product),
+          onIncrement: () => _cartManager.addItem(product),
+          onDecrement: () => _cartManager.removeItem(productId),
+          onCardTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProductDetailScreen(productId: productId)),
+            );
+          },
         );
       },
     );

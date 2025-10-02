@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sample/screen/product_detail.dart';
 import 'dart:convert';
-
 import '../utils/favorites_manager.dart';
 import '../utils/cart_manager.dart';
-import '../widgets/bottom_navigation_bar.dart';
-import '../utils/navigation_helper.dart';
 import '../widgets/product_card.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -27,7 +24,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<dynamic> products = [];
   bool isLoading = true;
   String errorMessage = '';
-  int _currentIndex = 1;
   final FavoritesManager _favoritesManager = FavoritesManager();
   final CartManager _cartManager = CartManager();
 
@@ -59,7 +55,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       final response = await http.get(Uri.parse(
           'http://13.127.232.90:8084/product/get-product-by-category-id/${widget.categoryId}'));
 
-      if (response.statusCode == 200) {
+      if (mounted && response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'OK') {
           setState(() => products = data['data'] ?? []);
@@ -67,17 +63,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
           setState(() => errorMessage = data['message'] ?? 'Failed to load products');
         }
       } else {
-        setState(() => errorMessage = 'Failed to load products. Status code: ${response.statusCode}');
+        if(mounted) setState(() => errorMessage = 'Failed to load products. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      setState(() => errorMessage = 'Error fetching products: $e');
+      if(mounted) setState(() => errorMessage = 'Error fetching products: $e');
     }
-    setState(() => isLoading = false);
-  }
-
-  void _handleNavigation(int index) {
-    setState(() => _currentIndex = index);
-    NavigationHelper.navigateToPage(context, index);
+    if(mounted) setState(() => isLoading = false);
   }
 
   void _navigateToProductDetail(int productId) {
@@ -123,10 +114,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
             );
           },
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _handleNavigation,
       ),
     );
   }

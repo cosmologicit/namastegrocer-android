@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:sample/screen/manage_addresses.dart';
+import 'package:sample/screen/my_orders.dart';
 import 'package:sample/screen/privacy_security.dart';
 import 'package:sample/screen/help_support.dart';
-
-import '../widgets/bottom_navigation_bar.dart';
-import '../utils/navigation_helper.dart';
 import '../utils/session_manager.dart';
 import 'login.dart';
 import 'signup.dart';
 
 class AccountPage extends StatefulWidget {
-  const AccountPage({super.key});
+  final Function(int) onNavigateToTab;
+  const AccountPage({super.key, required this.onNavigateToTab});
 
   @override
   State<AccountPage> createState() => _AccountPageState();
@@ -18,7 +18,6 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   bool _isLoggedIn = false;
   Map<String, dynamic> _userData = {};
-  int _currentIndex = 4;
 
   @override
   void initState() {
@@ -31,53 +30,50 @@ class _AccountPageState extends State<AccountPage> {
     if (loggedIn) {
       _userData = SessionManager.getUserData() ?? {};
     }
-    setState(() {
-      _isLoggedIn = loggedIn;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = loggedIn;
+      });
+    }
   }
 
   void _logout() async {
     await SessionManager.logout();
-    setState(() {
-      _isLoggedIn = false;
-      _userData = {};
-    });
+    _checkLoginStatus();
   }
 
   void _navigateToLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    ).then((_) => _checkLoginStatus());
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage())).then((_) => _checkLoginStatus());
   }
 
   void _navigateToSignup() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SignupPage()),
-    ).then((_) => _checkLoginStatus());
-  }
-
-  void _handleNavigation(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    NavigationHelper.navigateToPage(context, index);
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupPage())).then((_) => _checkLoginStatus());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text("My Account"),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
       ),
-      body: _isLoggedIn ? _buildLoggedInUI() : _buildLoggedOutUI(),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _handleNavigation,
+      body: Stack(
+        children: [
+          Opacity(
+            opacity: 0.7,
+            child: Image.asset(
+              "assets/images/banner5.png",
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) => Container(color: Colors.purple.withOpacity(0.1)),
+            ),
+          ),
+          _isLoggedIn ? _buildLoggedInUI() : _buildLoggedOutUI(),
+        ],
       ),
     );
   }
@@ -89,47 +85,21 @@ class _AccountPageState extends State<AccountPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Image.asset(
-            "lib/image/logo3.png",
-            height: 100,
-          ),
+          Image.asset("assets/images/logo3.png", height: 100),
           const SizedBox(height: 30),
-          const Text(
-            "Welcome to Namaste Grocer",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          const Text("Welcome to Namaste Grocer", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 10),
-          const Text(
-            "Please login or create an account to manage your orders, addresses, and preferences",
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          const Text("Please login or create an account to manage your orders, addresses, and preferences", style: TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
           const SizedBox(height: 40),
           SizedBox(
             height: 48,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.purple,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: _navigateToLogin,
-              child: const Text(
-                "Login",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
+              child: const Text("Login", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ),
           const SizedBox(height: 16),
@@ -137,20 +107,11 @@ class _AccountPageState extends State<AccountPage> {
             height: 48,
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 side: const BorderSide(color: Colors.purple),
               ),
               onPressed: _navigateToSignup,
-              child: const Text(
-                "Create Account",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.purple,
-                ),
-              ),
+              child: const Text("Create Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.purple)),
             ),
           ),
         ],
@@ -162,123 +123,72 @@ class _AccountPageState extends State<AccountPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Padding(
+          Container(
+            color: Colors.white.withOpacity(0.8),
+            margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.purple,
-                  child: Icon(
-                    Icons.person,
-                    size: 30,
-                    color: Colors.white,
-                  ),
-                ),
+                const CircleAvatar(radius: 30, backgroundColor: Colors.purple, child: Icon(Icons.person, size: 30, color: Colors.white)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _userData['name'] ?? 'User',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text(_userData['name'] ?? 'User', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       if (_userData['email'] != null)
-                        Text(
-                          _userData['email'],
-                          style: const TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
+                        Text(_userData['email'], style: const TextStyle(fontSize: 14, color: Colors.grey)),
                       if (_userData['phone'] != null)
-                        Text(
-                          _userData['phone'],
-                          style: const TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
+                        Text(_userData['phone'], style: const TextStyle(fontSize: 14, color: Colors.grey)),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.grey),
-                  onPressed: () {},
-                ),
+                IconButton(icon: const Icon(Icons.edit, color: Colors.grey), onPressed: () {}),
               ],
             ),
           ),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+          const SizedBox(height: 0),
           _buildAccountOption(
             icon: Icons.shopping_bag_outlined,
             title: "My Orders",
             subtitle: "Check your order status",
-            onTap: () {},
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyOrdersPage())),
           ),
           _buildAccountOption(
             icon: Icons.location_on_outlined,
             title: "My Addresses",
             subtitle: "Manage your delivery addresses",
-            onTap: () {},
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAddressesPage())),
           ),
           _buildAccountOption(
             icon: Icons.favorite_border,
             title: "My Favorites",
             subtitle: "View your favorite products",
-            onTap: () {},
+            onTap: () => widget.onNavigateToTab(3),
           ),
-          _buildAccountOption(
-            icon: Icons.notifications_none,
-            title: "Notifications",
-            subtitle: "Manage your notifications",
-            onTap: () {},
-          ),
+          const SizedBox(height: 12),
           _buildAccountOption(
             icon: Icons.security_outlined,
             title: "Privacy & Security",
             subtitle: "Manage your account security",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PrivacySecurityScreen()),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacySecurityScreen())),
           ),
           _buildAccountOption(
             icon: Icons.help_outline,
             title: "Help & Support",
             subtitle: "Get help with your account",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpSupportScreen())),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text(
-                  "Logout",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  side: const BorderSide(color: Colors.red),
-                ),
-                onPressed: _logout,
-              ),
+          const SizedBox(height: 12),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            color: Colors.white.withOpacity(0.8),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              onTap: _logout,
             ),
           ),
         ],
@@ -286,19 +196,18 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  Widget _buildAccountOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
-      leading: Icon(icon, color: Colors.purple),
-      title: Text(title),
-      subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-      onTap: onTap,
+  Widget _buildAccountOption({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      color: Colors.white.withOpacity(0.8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+        leading: Icon(icon, color: Colors.purple),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        onTap: onTap,
+      ),
     );
   }
 }

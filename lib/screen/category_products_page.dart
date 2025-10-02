@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sample/screen/product_detail.dart';
+import '../utils/cart_manager.dart';
 import '../utils/favorites_manager.dart';
-import '../widgets/bottom_navigation_bar.dart';
-import '../utils/navigation_helper.dart';
 import '../widgets/product_card.dart';
 
 class CategoryProductsPage extends StatefulWidget {
@@ -16,48 +15,32 @@ class CategoryProductsPage extends StatefulWidget {
 
 class _CategoryProductsPageState extends State<CategoryProductsPage> {
   List<Map<String, dynamic>> products = [];
-  int _currentIndex = 1;
 
   final FavoritesManager _favoritesManager = FavoritesManager();
-  final Map<int, int> _cartQuantities = {};
+  final CartManager _cartManager = CartManager();
 
   @override
   void initState() {
     super.initState();
     products = List<Map<String, dynamic>>.from(widget.category['products']);
-    _favoritesManager.addListener(_onFavoritesChanged);
+    _favoritesManager.addListener(_onStateChanged);
+    _cartManager.addListener(_onStateChanged);
   }
 
   @override
   void dispose() {
-    _favoritesManager.removeListener(_onFavoritesChanged);
+    _favoritesManager.removeListener(_onStateChanged);
+    _cartManager.removeListener(_onStateChanged);
     super.dispose();
   }
 
-  void _onFavoritesChanged() {
+  void _onStateChanged() {
     if (mounted) setState(() {});
-  }
-
-  void _incrementQuantity(int productId) => setState(() => _cartQuantities[productId] = (_cartQuantities[productId] ?? 0) + 1);
-  void _decrementQuantity(int productId) {
-    setState(() {
-      if ((_cartQuantities[productId] ?? 0) > 1) {
-        _cartQuantities[productId] = _cartQuantities[productId]! - 1;
-      } else {
-        _cartQuantities.remove(productId);
-      }
-    });
-  }
-
-  void _handleNavigation(int index) {
-    setState(() => _currentIndex = index);
-    NavigationHelper.navigateToPage(context, index);
   }
 
   void _navigateToProductDetail(int productId) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailScreen(productId: productId)));
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +51,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
         foregroundColor: Colors.white,
       ),
       body: products.isEmpty
-          ? const Center(child: Text("No products available", style: TextStyle(fontSize: 18, color: Colors.grey)))
+          ? const Center(child: Text("No products available in this category.", style: TextStyle(fontSize: 18, color: Colors.grey)))
           : GridView.builder(
         padding: const EdgeInsets.all(8),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -84,17 +67,13 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
           return ProductCard(
             product: product,
             isFavorite: _favoritesManager.isFavorite(productId),
-            quantity: _cartQuantities[productId] ?? 0,
+            quantity: _cartManager.cart[productId]?['quantity'] ?? 0,
             onToggleFavorite: () => _favoritesManager.toggleFavorite(product),
-            onIncrement: () => _incrementQuantity(productId),
-            onDecrement: () => _decrementQuantity(productId),
+            onIncrement: () => _cartManager.addItem(product),
+            onDecrement: () => _cartManager.removeItem(productId),
             onCardTap: () => _navigateToProductDetail(productId),
           );
         },
-      ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _handleNavigation,
       ),
     );
   }

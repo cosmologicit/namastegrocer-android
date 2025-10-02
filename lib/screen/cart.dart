@@ -3,21 +3,18 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../utils/cart_manager.dart';
 import '../utils/session_manager.dart';
-import '../widgets/bottom_navigation_bar.dart';
-import '../utils/navigation_helper.dart';
 import 'manage_addresses.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key});
+  final Function(int) onNavigateToTab;
+  const CartPage({super.key, required this.onNavigateToTab});
 
   @override
   State<CartPage> createState() => _CartPageState();
 }
 
 class _CartPageState extends State<CartPage> {
-  int _currentIndex = 2;
   final CartManager _cartManager = CartManager();
-
   Map<String, dynamic>? _deliveryAddress;
   bool _isLoadingAddress = true;
   double _selectedTip = 0.0;
@@ -42,23 +39,20 @@ class _CartPageState extends State<CartPage> {
 
   Future<void> _fetchDefaultAddress() async {
     if (!SessionManager.isLoggedIn()) {
-      setState(() => _isLoadingAddress = false);
+      if (mounted) setState(() => _isLoadingAddress = false);
       return;
     }
-
     final String? token = SessionManager.getToken();
     if (token == null) {
-      setState(() => _isLoadingAddress = false);
+      if (mounted) setState(() => _isLoadingAddress = false);
       return;
     }
-
     try {
       final response = await http.get(
         Uri.parse('http://13.127.232.90:8084/address/address/default'),
         headers: {'Authorization': token},
       );
-
-      if (response.statusCode == 200) {
+      if (mounted && response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'OK' && data['data'] != null) {
           setState(() => _deliveryAddress = data['data']);
@@ -67,12 +61,7 @@ class _CartPageState extends State<CartPage> {
     } catch (e) {
       print("Error fetching address: $e");
     }
-    setState(() => _isLoadingAddress = false);
-  }
-
-  void _handleNavigation(int index) {
-    setState(() => _currentIndex = index);
-    NavigationHelper.navigateToPage(context, index);
+    if (mounted) setState(() => _isLoadingAddress = false);
   }
 
   @override
@@ -81,7 +70,7 @@ class _CartPageState extends State<CartPage> {
     const double deliveryCharges = 25.0;
     const double handlingCharges = 10.0;
     const double platformCharges = 10.0;
-    final double grandTotal = itemsTotal + deliveryCharges + handlingCharges + platformCharges + _selectedTip;
+    final double grandTotal = itemsTotal > 0 ? (itemsTotal + deliveryCharges + handlingCharges + platformCharges + _selectedTip) : 0.0;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -90,15 +79,6 @@ class _CartPageState extends State<CartPage> {
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(icon: const Icon(Icons.close), onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.of(context).pop();
-            } else {
-              NavigationHelper.navigateToPage(context, 0);
-            }
-          }),
-        ],
       ),
       body: _cartManager.items.isEmpty
           ? _buildEmptyCart()
@@ -144,7 +124,7 @@ class _CartPageState extends State<CartPage> {
           const Text("Looks like you haven't added anything yet.", style: TextStyle(fontSize: 15, color: Colors.grey)),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => NavigationHelper.navigateToPage(context, 0),
+            onPressed: () => widget.onNavigateToTab(0),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple,
               foregroundColor: Colors.white,
@@ -348,12 +328,11 @@ class _CartPageState extends State<CartPage> {
                 const Text("Delivery Address", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 TextButton(
                   onPressed: () async {
-                    // YAHAN BADLAAV KIYA GAYA HAI
                     final selectedAddress = await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ManageAddressesPage()),
                     );
-                    if (selectedAddress != null) {
+                    if (selectedAddress != null && mounted) {
                       setState(() {
                         _deliveryAddress = selectedAddress;
                       });
